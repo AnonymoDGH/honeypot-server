@@ -2,7 +2,7 @@
 
 # 🍯 Honeypot Server
 
-<img src="logo.png" alt="Honeypot Server" width="180"/>
+<img src="https://raw.githubusercontent.com/AnonymoDGH/honeypot-server/main/logo.png" alt="Honeypot Server" width="180"/>
 
 **Fake services that log everyone who knocks.**
 
@@ -78,7 +78,7 @@ the log:
 
 ## How it works
 
-<img src="assets/architecture.svg" alt="Architecture" width="820"/>
+<img src="https://raw.githubusercontent.com/AnonymoDGH/honeypot-server/main/assets/architecture.svg" alt="Architecture" width="820"/>
 
 ## Tests
 
