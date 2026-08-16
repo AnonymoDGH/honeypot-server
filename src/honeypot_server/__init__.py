@@ -1,21 +1,33 @@
 """Honeypot Server — fake services that log everyone who knocks.
 
-Spin up convincing-looking decoys (HTTP, FTP, SSH, SMTP, DNS) and record
-every handshake, banner grab, and probe into a JSONL log. Perfect for
-watching what rattles around your network — or for the scene where the
-villain trips a decoy and everyone knows he was there.
+Spin up convincing-looking decoys (HTTP, FTP, SSH, SMTP, DNS, telnet,
+redis, mysql) and record every handshake, banner grab, and probe into a
+JSONL log. On top of the decoys sits a deception layer: a persona engine
+that keeps every protocol telling one consistent fake-identity story, a
+tar pit that slows attackers down, canary tokens that scream when
+touched, attacker profiling with simplified MITRE ATT&CK mapping, IOC
+feeds, dashboards, session replay, and a 0-100 deception score.
 
-Pure standard library.
+Defensive tooling for your own network. Pure standard library.
 """
 
 from __future__ import annotations
 
-import json
 import socket
 import socketserver
 import threading
-import time
 from pathlib import Path
+
+from .core.logger import Logger, make_event, hash_credential
+from .core.persona import Persona, persona_from_seed
+from .core.tarpit import Tarpit, TarpitConfig
+from .core.server import HoneypotManager
+from .core.config import DeploymentConfig, from_dict as config_from_dict
+from .protocols import PROTOCOLS, handler_for, known_services
+from .protocols.base import CanaryRegistry, build_server
+from .intel.attacker import AttackerTracker, classify, map_ttps
+from .intel.deception import score_deployment
+from .canary.tokens import CanaryTokenFactory
 
 DEFAULT_PORTS = {
     "http": 80,
@@ -41,24 +53,6 @@ FAKE_PAGES = {
         b"<button>Sign in</button></form></body></html>"
     ),
 }
-
-
-class Logger:
-    """Thread-safe JSONL logger."""
-
-    def __init__(self, path: str | Path | None):
-        self.path = Path(path) if path else None
-        self._lock = threading.Lock()
-
-    def log(self, entry: dict) -> None:
-        entry["ts"] = time.strftime("%Y-%m-%d %H:%M:%S")
-        line = json.dumps(entry, ensure_ascii=False)
-        if self.path:
-            with self._lock:
-                with self.path.open("a", encoding="utf-8") as f:
-                    f.write(line + "\n")
-        else:
-            print(f"  [{entry['service']}] {entry.get('src', '?')}: {line}")
 
 
 class ServiceHandler(socketserver.BaseRequestHandler):
@@ -193,4 +187,19 @@ def run(services: list[str], host: str, ports: dict[str, int] | None = None,
     return servers
 
 
-__all__ = ["DEFAULT_PORTS", "HANDLERS", "Logger", "run_server", "run"]
+__all__ = [
+    # legacy 0.1.0 API (kept stable)
+    "DEFAULT_PORTS", "BANNERS", "FAKE_PAGES", "HANDLERS",
+    "Logger", "make_event", "hash_credential",
+    "run_server", "run",
+    # 0.2.0 platform API
+    "Persona", "persona_from_seed",
+    "Tarpit", "TarpitConfig",
+    "HoneypotManager",
+    "DeploymentConfig", "config_from_dict",
+    "PROTOCOLS", "handler_for", "known_services",
+    "CanaryRegistry", "build_server",
+    "AttackerTracker", "classify", "map_ttps",
+    "score_deployment",
+    "CanaryTokenFactory",
+]
